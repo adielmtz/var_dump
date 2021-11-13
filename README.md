@@ -1,17 +1,18 @@
 ﻿# var_dump
 PHP's var_dump function for JavaScript.
 
+## Usage
 ```js
 var_dump({
     string: "hello",
     array: ["world!"],
     object: {
-        subkey: [1, 2, {deep: "nested"}],
+        subkey: [1, 2, {deeply: "nested"}],
         empty: {}
     },
     number: 100,
     bigint: 100n,
-    func: function (a, b, c) {},
+    func: function (a, b = true, ...c) {},
     html: document.createElement("div")
 });
 ```
@@ -27,7 +28,7 @@ object(Object) (7) {
             [0] => number(1)
             [1] => number(2)
             [2] => object(Object) (1) {
-                ["deep"] => string(6) "nested"
+                ["deeply"] => string(6) "nested"
             }
         }
         ["empty"] => object(Object) (0) {
@@ -39,31 +40,40 @@ object(Object) (7) {
         [name] => string(4) "func"
         [parameters] => object(Object) (3) {
             ["a"] => string(10) "<required>"
-            ["b"] => string(10) "<required>"
-            ["c"] => string(10) "<required>"
+            ["b"] => string(10) "<optional>"
+            ["c"] => string(10) "<optional>"
         }
     }
     ["html"] => HTMLElement(DIV)
 }
 ```
 
-Use `var_dump.INDENT_CHAR` and `var_dump.INDENT_LENGTH` to modify the output.
+## Configuration
+Use `var_dump.INDENTATION` to control the output format:
 
 ```js
-var_dump.INDENT_CHAR = "\t";
-var_dump.INDENT_LENGTH = 1;
-
+var_dump.INDENTATION = "\t";
 var_dump({key: ["foo", "var"]});
-```
 
-Output:
-```
+// Output:
 object(Object) (1) {
 	["key"] => array(2) {
 		[0] => string(3) "foo"
 		[1] => string(3) "var"
 	}
 }
+
+var_dump.INDENTATION = "  "; // 2 spaces
+var_dump({key: ["foo", "var"]});
+
+// Output:
+object(Object) (1) {
+  ["key"] => array(2) {
+    [0] => string(3) "foo"
+    [1] => string(3) "var"
+  }
+}
 ```
 
-Set `var_dump.ALLOW_WINDOW_DUMP` to `true` if you want to allow Window to be dumped, though it may be really slow.
+### Other options
+* Set `var_dump.ALLOW_WINDOW_DUMP` to `true` to allow var_dump to dump the Window object (though it may be really slow).

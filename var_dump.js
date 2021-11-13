@@ -1,20 +1,57 @@
 (function (window) {
     "use strict";
 
+    function StringBuilder()
+    {
+        if (!(this instanceof StringBuilder)) {
+            return new StringBuilder();
+        }
+
+        this._str = "";
+    }
+
+    StringBuilder.prototype.toString = function ()
+    {
+        return this._str;
+    };
+
+    StringBuilder.prototype.length = function ()
+    {
+        return this._str.length;
+    };
+
+    StringBuilder.prototype.clear = function ()
+    {
+        this._str = "";
+    }
+
+    StringBuilder.prototype.append = function (value)
+    {
+        this._str += value;
+    };
+
+    StringBuilder.prototype.appendLine = function (value)
+    {
+        if (typeof value !== "undefined") {
+            this._str += value;
+        }
+
+        this._str += "\n";
+    };
+
     function var_dump(...args) {
         for (let i = 0; i < args.length; i++) {
             const result = {
-                dump: "",
+                dump: new StringBuilder(),
                 stack: [],
             };
 
             dump_value(args[i], result, 0);
-            console.log(result.dump)
+            console.log(result.dump.toString())
         }
     }
 
-    var_dump.INDENT_CHAR = " ";
-    var_dump.INDENT_LENGTH = 4;
+    var_dump.INDENTATION = "    ";
     var_dump.ALLOW_WINDOW_DUMP = false;
 
     function dump_value(value, result, depth) {
@@ -23,13 +60,13 @@
             case "boolean":
             case "bigint":
             case "number":
-                result.dump += `${type}(${value})`;
+                result.dump.append(`${type}(${value})`);
                 break;
             case "string":
-                result.dump += `string(${value.length}) "${value}"`;
+                result.dump.append(`string(${value.length}) "${value}"`);
                 break;
             case "symbol":
-                result.dump += value.toString();
+                result.dump.append(value.toString());
                 break;
             case "function":
                 dump_function(value, result, depth);
@@ -38,7 +75,7 @@
                 dump_object(value, result, depth);
                 break;
             default:
-                result.dump += value;
+                result.dump.append(value);
         }
     }
 
@@ -55,11 +92,13 @@
         const funcIndent = get_indentation(depth);
         const attrIndent = get_indentation(depth + 1);
 
-        result.dump += `function {\n${attrIndent}[name] => `;
+        result.dump.appendLine("function {");
+        result.dump.append(`${attrIndent}[name] => `);
         dump_value(name, result, depth);
 
         if (args.length > 0) {
-            result.dump += `\n${attrIndent}[parameters] => `;
+            result.dump.appendLine();
+            result.dump.append(`${attrIndent}[parameters] => `);
             const parameters = {};
 
             for (let i = 0; i < args.length; i++) {
@@ -82,17 +121,18 @@
             dump_object(parameters, result, depth + 1);
         }
 
-        result.dump += `\n${funcIndent}}`;
+        result.dump.appendLine();
+        result.dump.append(`${funcIndent}}`);
     }
 
     function dump_object(value, result, depth) {
         if (result.stack.indexOf(value) !== -1) {
-            result.dump += "*RECURSION*";
+            result.dump.append("*RECURSION*");
             return;
         }
 
         if (value === null) {
-            result.dump += "NULL";
+            result.dump.append("NULL");
             return;
         }
 
@@ -102,20 +142,19 @@
         }
 
         if (!var_dump.ALLOW_WINDOW_DUMP && typeof window === "object" && value === window) {
-            result.dump += "object(window)";
+            result.dump.append("object(window)");
             return;
         }
 
         if (is_html_element(value)) {
-            result.dump += `HTMLElement(${value.nodeName})`;
+            result.dump.append(`HTMLElement(${value.nodeName})`);
             return;
         }
 
         result.stack.push(value);
-
         const name = typeof value.constructor === "function" && value.constructor.name.length > 0 ? value.constructor.name : "@anonymous";
         const keys = Object.keys(value);
-        result.dump += `object(${name}) (${keys.length}) {\n`;
+        result.dump.appendLine(`object(${name}) (${keys.length}) {`);
 
         const objIndent = get_indentation(depth);
         const propIndent = get_indentation(depth + 1);
@@ -124,46 +163,40 @@
             for (let i = 0; i < keys.length; i++) {
                 try {
                     const key = keys[i];
-                    result.dump += `${propIndent}["${key}"] => `;
+                    result.dump.append(`${propIndent}["${key}"] => `);
                     dump_value(value[key], result, depth + 1);
-                    result.dump += "\n";
+                    result.dump.appendLine();
                 } catch (e) {}
             }
         }
 
         result.stack.pop();
-        result.dump += `${objIndent}}`;
+        result.dump.append(`${objIndent}}`);
     }
 
     function dump_array(value, result, depth) {
         if (result.stack.indexOf(value) !== -1) {
-            result.dump += "*RECURSION*";
+            result.dump.append("*RECURSION*");
             return;
         }
 
-        result.dump += `array(${value.length}) {\n`;
+        result.dump.appendLine(`array(${value.length}) {`);
         const arrayIndent = get_indentation(depth);
         const valueIndent = get_indentation(depth + 1);
 
         result.stack.push(value);
         for (let i = 0; i < value.length; i++) {
-            result.dump += `${valueIndent}[${i}] => `;
+            result.dump.append(`${valueIndent}[${i}] => `);
             dump_value(value[i], result, depth + 1);
-            result.dump += "\n";
+            result.dump.appendLine();
         }
 
         result.stack.pop();
-        result.dump += `${arrayIndent}}`;
+        result.dump.append(`${arrayIndent}}`);
     }
 
-    function get_indentation(width) {
-        if (width === 0) {
-            return "";
-        }
-
-        const char = var_dump.INDENT_CHAR;
-        const len  = var_dump.INDENT_LENGTH;
-        return char.repeat(len * width);
+    function get_indentation(times) {
+        return var_dump.INDENTATION.repeat(times);
     }
 
     function is_html_element(value) {
